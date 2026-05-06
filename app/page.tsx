@@ -76,7 +76,7 @@ export default function Home() {
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const info: PhoneInfo = await res.json()
-      if (info.error) throw new Error(info.error as unknown as string)
+      if (info.error) throw new Error(info.error)
       info._saved_at = null
       setResult({ info, source: 'ai', key })
     } catch (e: unknown) {
