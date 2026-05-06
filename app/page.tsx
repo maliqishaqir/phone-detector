@@ -75,7 +75,7 @@ export default function Home() {
         body: JSON.stringify({ model: trimmed }),
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
-      const info: PhoneInfo = await res.json()
+      const info = await res.json()
       if (info.error) throw new Error(info.error)
       info._saved_at = null
       setResult({ info, source: 'ai', key })
