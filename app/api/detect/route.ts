@@ -7,7 +7,15 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
-  const prompt = `You are a telecom hardware expert. The user entered this phone model: "${phoneModel}"
+  const prompt = `You are a strict telecom hardware expert. The user entered this phone model: "${phoneModel}"
+
+Classification rules:
+- VoIP (SIP/IP Phone): connects ONLY via ethernet/WiFi, uses SIP/H.323/SCCP protocol, NO analog PSTN port
+- Analog Phone: connects ONLY via traditional phone line (RJ11), NO ethernet/SIP capability
+- Analog Telephone Adapter (ATA): a box that converts analog phones to VoIP, has FXS/FXO ports
+- Hybrid (VoIP + Analog): MUST have BOTH an ethernet/SIP interface AND an analog PSTN line port (RJ11 PSTN port)
+- A WiFi or DECT cordless VoIP phone is still VoIP, NOT hybrid
+
 Respond ONLY with a valid JSON object, no markdown, no backticks, no extra text:
 {
   "model_name": "Full official model name",
@@ -28,7 +36,7 @@ Respond ONLY with a valid JSON object, no markdown, no backticks, no extra text:
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
       messages: [{ role: 'user', content: prompt }],
     }),
