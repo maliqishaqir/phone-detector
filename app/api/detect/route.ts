@@ -2,18 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   const { model: phoneModel } = await req.json()
-
-  if (!phoneModel) {
-    return NextResponse.json({ error: 'No model provided' }, { status: 400 })
-  }
+  if (!phoneModel) return NextResponse.json({ error: 'No model provided' }, { status: 400 })
 
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-  }
+  if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
   const prompt = `You are a telecom hardware expert. The user entered this phone model: "${phoneModel}"
-
 Respond ONLY with a valid JSON object, no markdown, no backticks, no extra text:
 {
   "model_name": "Full official model name",
@@ -52,6 +46,6 @@ Respond ONLY with a valid JSON object, no markdown, no backticks, no extra text:
     const info = JSON.parse(raw)
     return NextResponse.json(info)
   } catch {
-    return NextResponse.json({ error: 'Failed to parse AI response', raw }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
   }
 }
