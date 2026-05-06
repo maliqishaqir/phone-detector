@@ -7,32 +7,38 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
-  const prompt = `You are a strict telecom hardware expert with deep knowledge of phone hardware specifications. The user entered this phone model: "${phoneModel}"
+  const prompt = `You are a strict telecom hardware expert. The user entered this phone model: "${phoneModel}"
 
-Research this exact model and apply these classification rules strictly:
+Based on your knowledge of this device's full technical specifications, determine how it connects to the telephone network:
 
-CONNECTOR RULES (highest priority):
-- If the phone has an RJ9, RJ10, or RJ11 port as its PRIMARY line connection → it is an Analog Phone, period.
-- RJ9/RJ10 = handset connector only (not a line port), common on desk phones
-- RJ11 = analog PSTN line port → confirms Analog Phone
-- RJ45 only = VoIP phone (ethernet)
-- RJ45 + RJ11 PSTN port = Hybrid
+NETWORK CONNECTION ANALYSIS (most important factor):
+- Does this phone connect to a VoIP/IP network? (SIP server, IP PBX, hosted PBX, Microsoft Teams, Cisco UCM, 3CX, FreePBX, Avaya Aura, etc.)
+- Does this phone connect to a PSTN network? (traditional copper line, analogue line, ISDN BRI/PRI, ADSL line, exchange line)
+- Does it support both?
 
-CLASSIFICATION RULES:
-- VoIP (SIP/IP Phone): connects via ethernet (RJ45) or WiFi only, uses SIP/H.323/SCCP/MGCP, no analog PSTN line port
-- Analog Phone: has RJ11 PSTN line port, connects to traditional phone line, no SIP/ethernet capability
-- Analog Telephone Adapter (ATA): a converter device with FXS/FXO ports that bridges analog phones to VoIP networks
-- Hybrid (VoIP + Analog): has BOTH RJ45 ethernet AND RJ11 PSTN line port
-- WiFi phone / DECT cordless VoIP = VoIP, NOT hybrid
-- DSL/ADSL phone with RJ11 = Analog Phone
+CLASSIFICATION:
+- VoIP (SIP/IP Phone): registers to a SIP/VoIP server over IP network (ethernet or WiFi). Uses SIP, H.323, SCCP, MGCP protocol.
+- Analog Phone (PSTN): connects directly to a PSTN/analogue line (copper pair). Has RJ11 line port. No IP capability.
+- Analog Telephone Adapter (ATA): converts analogue phones to work on VoIP networks. Has FXS/FXO ports.
+- Hybrid (VoIP + Analog): can connect to BOTH a VoIP/SIP server AND a PSTN/analogue line simultaneously.
+- Unknown: genuinely cannot determine.
 
-Respond ONLY with a valid JSON object, no markdown, no backticks, no extra text:
+CONNECTOR GUIDANCE:
+- RJ45 only = VoIP
+- RJ11 PSTN line port only = Analog/PSTN
+- RJ45 + RJ11 PSTN = Hybrid
+- WiFi/DECT with SIP = VoIP
+- RJ11 handset port (curly cord) does NOT make a phone analog
+
+Respond ONLY with a valid JSON object, no markdown, no backticks:
 {
   "model_name": "Full official model name",
   "manufacturer": "Brand name",
-  "type": "VoIP (SIP/IP Phone) | Analog Phone | Analog Telephone Adapter (ATA) | Hybrid (VoIP + Analog) | Unknown",
-  "protocol": "e.g. SIP, H.323, SCCP, MGCP, Analog POTS, or N/A",
-  "connectivity": "e.g. RJ45 ethernet, WiFi, RJ11 PSTN, DECT",
+  "type": "VoIP (SIP/IP Phone) | Analog Phone (PSTN) | Analog Telephone Adapter (ATA) | Hybrid (VoIP + Analog) | Unknown",
+  "line_type": "VoIP | PSTN | Both | Unknown",
+  "protocol": "e.g. SIP, H.323, SCCP, MGCP, Analog POTS, ISDN, or N/A",
+  "connectivity": "e.g. RJ45 ethernet, WiFi, RJ11 PSTN line, DECT",
+  "compatible_systems": "e.g. Any SIP PBX, Cisco UCM, Microsoft Teams, Analogue line, ISDN",
   "key_features": ["feature 1", "feature 2", "feature 3"],
   "typical_use": "One sentence description",
   "confidence": "High | Medium | Low",
