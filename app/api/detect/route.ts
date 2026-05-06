@@ -7,27 +7,21 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
-  const prompt = `You are a strict telecom hardware expert. The user entered this device model: "${phoneModel}"
+  const prompt = `Device model: "${phoneModel}"
 
-STEP 1 - DEVICE VALIDATION:
-First determine if this is a telephone/phone device. It must be one of:
-- A desk phone / IP phone / SIP phone
-- A cordless phone / DECT phone
-- An analog telephone adapter (ATA)
-- A conference phone
+Is this a phone? If NOT a phone (printer, router, laptop, camera, etc), return exactly:
+{"error":"not_a_phone","message":"This is not a phone or telephony device."}
 
-If it is NOT a phone (e.g. printer, router, switch, laptop, camera, etc), respond with this exact JSON:
-{"error":"not_a_phone","message":"This does not appear to be a phone. Please enter a phone model number."}
+If it IS a phone or telephony device, return exactly:
+{"model_name":"string","manufacturer":"string","type":"VoIP (SIP/IP Phone) or Analog Phone (PSTN) or Analog Telephone Adapter (ATA) or Hybrid (VoIP + Analog) or Unknown","line_type":"VoIP or PSTN or Both or Unknown","protocol":"string","connectivity":"string","compatible_systems":"string","key_features":["string","string","string"],"typical_use":"string","confidence":"High or Medium or Low","notes":"string"}
 
-STEP 2 - CLASSIFICATION (only if it is a phone):
-- VoIP (SIP/IP Phone): registers to SIP/VoIP server over ethernet or WiFi
-- Analog Phone (PSTN): connects to PSTN/analogue line via RJ11, no IP capability
-- Analog Telephone Adapter (ATA): converts analogue phones to VoIP, has FXS/FXO ports
-- Hybrid (VoIP + Analog): connects to BOTH VoIP and PSTN line
-- Unknown: cannot determine
-
-Respond ONLY with valid JSON, no markdown, no backticks:
-{"model_name":"Full official model name","manufacturer":"Brand name","type":"VoIP (SIP/IP Phone) | Analog Phone (PSTN) | Analog Telephone Adapter (ATA) | Hybrid (VoIP + Analog) | Unknown","line_type":"VoIP | PSTN | Both | Unknown","protocol":"SIP, H.323, SCCP, MGCP, Analog POTS, ISDN, or N/A","connectivity":"e.g. RJ45 ethernet, WiFi, RJ11 PSTN line, DECT","compatible_systems":"e.g. Any SIP PBX, Cisco UCM, Microsoft Teams, Analogue line","key_features":["feature 1","feature 2","feature 3"],"typical_use":"One sentence description","confidence":"High | Medium | Low","notes":"Any clarification or empty string"}`
+Rules:
+- VoIP = ethernet/WiFi + SIP/H.323/SCCP/MGCP, no PSTN line port
+- Analog PSTN = RJ11 PSTN line port, no IP capability
+- ATA = FXS/FXO ports, bridges analog to VoIP
+- Hybrid = both ethernet AND RJ11 PSTN port
+- DECT/WiFi cordless with SIP = VoIP not Hybrid
+- Return ONLY the JSON object, no markdown, no explanation`
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -39,6 +33,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
+      system: 'You are a telecom hardware expert. You respond ONLY with a single raw JSON object. No markdown. No backticks. No explanation. Just the JSON.',
       messages: [{ role: 'user', content: prompt }],
     }),
   })
@@ -49,7 +44,11 @@ Respond ONLY with valid JSON, no markdown, no backticks:
   }
 
   const data = await res.json()
-  const raw = data.content.map((i: { text?: string }) => i.text || '').join('').replace(/```json|```/g, '').trim()
+  const raw = data.content
+    .map((i: { text?: string }) => i.text || '')
+    .join('')
+    .replace(/```json|```/g, '')
+    .trim()
 
   try {
     const info = JSON.parse(raw)
@@ -58,6 +57,6 @@ Respond ONLY with valid JSON, no markdown, no backticks:
     }
     return NextResponse.json(info)
   } catch {
-    return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to parse response. Please try again.' }, { status: 200 })
   }
 }
