@@ -7,20 +7,28 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
-  const prompt = `You are a strict telecom hardware expert. The user entered this phone model: "${phoneModel}"
+  const prompt = `You are a strict telecom hardware expert. The user entered this device model: "${phoneModel}"
 
-Based on your knowledge of this device's full technical specifications, determine how it connects to the telephone network:
+STEP 1 - DEVICE VALIDATION:
+First determine if this is a telephone/phone device. It must be one of:
+- A desk phone / IP phone / SIP phone
+- A cordless phone / DECT phone
+- An analog telephone adapter (ATA)
+- A conference phone
+- A softphone device
 
-NETWORK CONNECTION ANALYSIS (most important factor):
-- Does this phone connect to a VoIP/IP network? (SIP server, IP PBX, hosted PBX, Microsoft Teams, Cisco UCM, 3CX, FreePBX, Avaya Aura, etc.)
-- Does this phone connect to a PSTN network? (traditional copper line, analogue line, ISDN BRI/PRI, ADSL line, exchange line)
-- Does it support both?
+If it is NOT a phone (e.g. it is a printer, router, switch, laptop, tablet, camera, TV, or any other non-phone device), respond with:
+{
+  "error": "not_a_phone",
+  "message": "This does not appear to be a phone or telephony device. Please enter a phone model number."
+}
 
-CLASSIFICATION:
-- VoIP (SIP/IP Phone): registers to a SIP/VoIP server over IP network (ethernet or WiFi). Uses SIP, H.323, SCCP, MGCP protocol.
+STEP 2 - CLASSIFICATION (only if it is a phone):
+Determine how it connects to the telephone network:
+- VoIP (SIP/IP Phone): registers to a SIP/VoIP server over IP network (ethernet or WiFi). Uses SIP, H.323, SCCP, MGCP.
 - Analog Phone (PSTN): connects directly to a PSTN/analogue line (copper pair). Has RJ11 line port. No IP capability.
-- Analog Telephone Adapter (ATA): converts analogue phones to work on VoIP networks. Has FXS/FXO ports.
-- Hybrid (VoIP + Analog): can connect to BOTH a VoIP/SIP server AND a PSTN/analogue line simultaneously.
+- Analog Telephone Adapter (ATA): converts analogue phones to VoIP networks. Has FXS/FXO ports.
+- Hybrid (VoIP + Analog): connects to BOTH a VoIP/SIP server AND a PSTN/analogue line.
 - Unknown: genuinely cannot determine.
 
 CONNECTOR GUIDANCE:
@@ -69,6 +77,9 @@ Respond ONLY with a valid JSON object, no markdown, no backticks:
 
   try {
     const info = JSON.parse(raw)
+    if (info.error === 'not_a_phone') {
+      return NextResponse.json({ error: info.message }, { status: 422 })
+    }
     return NextResponse.json(info)
   } catch {
     return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
